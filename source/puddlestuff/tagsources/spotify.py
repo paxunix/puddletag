@@ -62,7 +62,7 @@ class Spotify(object):
 
     def _spotifySearch(self, query, queryType):
         write_log(translate('Spotify',
-            "Spotify request: query='{}' queryType='{}'".format(query,
+            u"Spotify request: query='{}' queryType='{}'".format(query,
                 queryType)))
 
         response = self.spotify.search(q = query, type = queryType, limit = 50)
