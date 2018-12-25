@@ -8,6 +8,7 @@ from puddlestuff.util import translate
 import re
 import spotipy
 import spotipy.oauth2 as oauth2
+import os
 
 
 class VivifyDict(dict):
@@ -231,6 +232,13 @@ class Spotify(object):
                                     (albumInfo[0], []),
                             Spotify._parseSpotifySearchResponse(response,
                                 keepTracks = True)))
+
+                    # If we still have no results, try a dumb keyword search
+                    # with the filename split on punctuation.  Maybe we get
+                    # lucky.
+                    if not results:
+                        keywords = " ".join(re.split(r'\W+', os.path.splitext(artists[artist][0].get("__filename"))[0]));
+                        results.extend(self.keyword_search(keywords))
 
         return results
 
