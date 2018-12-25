@@ -182,39 +182,55 @@ class Spotify(object):
 
 
     def search(self, album, artists):
-        artist = ""
-        if type(artists) is list:
-            artist = artists[0]         # XXX: what if more than one artist?
-        elif type(artists) is str:
-            artist = artists
-        else:
-            artist = artists.keys()[0]      # XXX: what if more than one artist?
+        results = []
 
-        queryType = ""
-        query = ""
-        if album and (not artist):
-            query = "album:" + album
+        for artist in artists.keys():
+            # All query types should return album data because that's the
+            # only thing that's meaningful (it has track data)
             queryType = "album"
-        elif artist and (not album):
-            query = "artist:" + artist
-            queryType = "album"
-        elif artist and album:
-            query = "album:" + album + " " + "artist:" + artist
-            queryType = "album"
+            query = ""
+            if album and (not artist):
+                query = "album:" + album
+            elif artist and (not album):
+                query = "artist:" + artist
+            elif artist and album:
+                query = "album:" + album + " " + "artist:" + artist
 
-        response = self._spotifySearch(query, queryType)
-        results = Spotify._parseSpotifySearchResponse(response, keepTracks =
-                True)
+            if query:
+                response = self._spotifySearch(query, queryType)
+                results.extend(Spotify._parseSpotifySearchResponse(response,
+                    keepTracks = True))
 
-        # If we had artist and album but found no results, it's possible the
-        # album name is wrong, so try a search by artist only.
-        if len(results) == 0:
-            query = "artist:" + artist
-            queryType = "album"
+            # If we had artist and album but found no results, it's possible
+            # the album name is wrong, so try a search by artist only (if it
+            # has a value)
+            if len(results) == 0 and artist:
+                query = "artist:" + artist
 
-            response = self._spotifySearch(query, queryType)
-            results = Spotify._parseSpotifySearchResponse(response, keepTracks =
-                    True)
+                response = self._spotifySearch(query, queryType)
+                results.extend(Spotify._parseSpotifySearchResponse(response,
+                    keepTracks = True))
+
+            # If still no results and we have track info, search for it.
+            # However, we don't get back complete track listings for the
+            # album (it only includes tracks that match the input name).
+            # Throw that info away, so a full album retrieve() will be done
+            # if/when the user selects the album.
+            if len(results) == 0:
+                if len(artists[artist]) > 0:
+                    title = artists[artist][0].get("title")
+                    if title:
+                        title = title[0]
+
+                    if title:
+                        query = "track:" + title
+                        queryType = "track"
+
+                        response = self._spotifySearch(query, queryType)
+                        results.extend(map(lambda albumInfo:
+                                    (albumInfo[0], []),
+                            Spotify._parseSpotifySearchResponse(response,
+                                keepTracks = True)))
 
         return results
 
