@@ -245,6 +245,8 @@ class Spotify(object):
 
     def retrieve(self, info):
         """ Retrieves track info (and album art) from album+artist in info.  """
+        # Invoked when there is incomplete album data for an artist in
+        # existing search results and the user selects an artist.
         response = self.spotify.album_tracks(info["#spotifyalbumuri"])
         tracks = Spotify._parseTracks(response["items"])
         info["__image"] = Spotify._getImage(info["#spotifyimgurl"])
