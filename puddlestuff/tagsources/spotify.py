@@ -165,6 +165,18 @@ class Spotify(object):
         return map(lambda key: (albumKey2Tracks[key]["albuminfo"], albumKey2Tracks[key]["trackinfo"]), albumKey2Tracks.keys())
 
 
+    def _buildQuery(self, artist, album):
+        query = ""
+        if album and (not artist):
+            query = 'album:"' + album + '"'
+        elif artist and (not album):
+            query = 'artist:"' + artist + '"'
+        elif artist and album:
+            query = 'album:"' + album + '" artist:"' + artist + '"'
+
+        return query
+
+
     def keyword_search(self, text):
         #XXX: The format artist1;album1|artist2;album2 should be accepted.
         #Use the parse_searchstring method to separate text
@@ -189,13 +201,7 @@ class Spotify(object):
             # All query types should return album data because that's the
             # only thing that's meaningful (it has track data)
             queryType = "album"
-            query = ""
-            if album and (not artist):
-                query = "album:" + album
-            elif artist and (not album):
-                query = "artist:" + artist
-            elif artist and album:
-                query = "album:" + album + " " + "artist:" + artist
+            query = self._buildQuery(artist, album)
 
             if query:
                 response = self._spotifySearch(query, queryType)
