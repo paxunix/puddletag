@@ -241,10 +241,7 @@ class Spotify(object):
                         queryType = "track"
 
                         response = self._spotifySearch(query, queryType)
-                        results.extend(map(lambda albumInfo:
-                                    (albumInfo[0], []),
-                            Spotify._parseSpotifySearchResponse(response,
-                                keepTracks = True)))
+                        results.extend(Spotify._parseSpotifySearchResponse(response, keepTracks = False))
 
                     # If we still have no results, try a dumb keyword search
                     # with the filename split on punctuation.  Maybe we get
