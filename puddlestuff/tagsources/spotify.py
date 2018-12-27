@@ -178,19 +178,26 @@ class Spotify(object):
 
 
     def keyword_search(self, text):
-        #XXX: The format artist1;album1|artist2;album2 should be accepted.
-        #Use the parse_searchstring method to separate text
-        #into a list of artist album pairs as in:
-        # [(artist1, album1), (artist2, album2)]
-        # then loop over them
         """Searches for albums/artists/tracks by keyword text."""
-        response = self._spotifySearch(text, "album,artist,track")
 
-        # Do not keep track results from possible matches--it only matched
-        # on track name and so the album data in the track object won't have
-        # the full track list (we can rely on retrieve() to do that work if
-        # the user invokes it).
-        results = Spotify._parseSpotifySearchResponse(response, keepTracks = False)
+        queryType = "album,artist,track"
+        results = []
+        searchPairs = []
+        try:
+            searchPairs = parse_searchstring(text)
+            for pair in searchPairs:
+                query = self._buildQuery(pair[0], pair[1])
+
+                if query:
+                    response = self._spotifySearch(query, queryType)
+                    results.extend(Spotify._parseSpotifySearchResponse(response,
+                        keepTracks = False))
+
+        except:
+            response = self._spotifySearch(text, queryType)
+            results.extend(Spotify._parseSpotifySearchResponse(response,
+                keepTracks = False))
+
         return results
 
 
