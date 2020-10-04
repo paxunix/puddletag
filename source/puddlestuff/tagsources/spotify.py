@@ -271,4 +271,4 @@ info = Spotify
 if __name__ == '__main__':
     s = Spotify()
     results = s.search("use your illusion", "")
-    print results
+    print(results)
