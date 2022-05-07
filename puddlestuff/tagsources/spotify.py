@@ -7,7 +7,7 @@ from puddlestuff.tagsources import (write_log, RetrievalError, urlopen, parse_se
 from puddlestuff.util import translate
 import re
 import spotipy
-import spotipy.oauth2 as oauth2
+from spotipy.oauth2 import SpotifyClientCredentials
 import os
 
 
@@ -56,9 +56,9 @@ class Spotify(object):
         self.spotifyClientKey = args[0]
         self.spotifyClientSecret = args[1]
 
-        credentials = oauth2.SpotifyClientCredentials(client_id=self.spotifyClientKey, client_secret=self.spotifyClientSecret)
+        self.spotifyAuthManager = SpotifyClientCredentials(client_id=self.spotifyClientKey, client_secret=self.spotifyClientSecret)
 
-        self.spotify = spotipy.Spotify(auth = credentials.get_access_token())
+        self.spotify = spotipy.Spotify(auth_manager = self.spotifyAuthManager)
 
 
     def _spotifySearch(self, query, queryType):
