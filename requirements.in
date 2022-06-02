@@ -8,3 +8,5 @@ unidecode>=1.4.0
 
 # extra / tag sources
 pyacoustid
+Levenshtein
+spotipy
