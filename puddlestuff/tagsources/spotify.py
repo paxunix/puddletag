@@ -149,7 +149,7 @@ class Spotify(object):
 
     @staticmethod
     def _parseSpotifySearchResponse(response, keepTracks):
-        albumKey2Tracks = VivifyDict();
+        albumKey2Tracks = VivifyDict()
 
         if "albums" in response:
             for album in Spotify._parseAlbums(response["albums"]["items"]):
