@@ -75,7 +75,7 @@ class Spotify(object):
     def _parseTrack(raw):
         track = {
             "title": raw["name"],
-            "track": raw["track_number"],
+            "track": str(raw["track_number"]),
         }
 
         if "album" in raw:
