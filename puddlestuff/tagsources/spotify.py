@@ -78,6 +78,7 @@ class Spotify(object):
         track = {
             "title": raw["name"],
             "track": str(raw["track_number"]),
+            "discnumber": str(raw["disc_number"]),
         }
 
         if "album" in raw:
