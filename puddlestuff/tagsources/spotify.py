@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import locale
+import functools
 import puddlestuff
 from puddlestuff.audioinfo import (DATA, get_mime)
 from puddlestuff.constants import CHECKBOX, COMBO, TEXT
@@ -86,14 +88,24 @@ class Spotify(object):
 
 
     @staticmethod
+    def _trackCmp(trackObj_a, trackObj_b):
+        # sort by disc, then by track number (so we can order multidisc album tracks)
+        aDiscNum = str(trackObj_a.get("disc_number", 1)).zfill(5)
+        bDiscNum = str(trackObj_b.get("disc_number", 1)).zfill(5)
+        aTrackNum = str(trackObj_a.get("track_number", 0)).zfill(5)
+        bTrackNum = str(trackObj_b.get("track_number", 0)).zfill(5)
+
+        return locale.strcoll(aDiscNum + aTrackNum, bDiscNum + bTrackNum)
+
+
+    @staticmethod
     def _parseTracks(trackList):
         tracks = []
 
         for track in trackList:
             tracks.append(Spotify._parseTrack(track))
 
-        # XXX: if the album is multidisc, keep the tracks ordered by disc
-        tracks.sort(key = lambda el: el["track"])
+        tracks.sort(key = functools.cmp_to_key(Spotify._trackCmp))
 
         return tracks
 
