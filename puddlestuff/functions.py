@@ -275,14 +275,15 @@ def iflonger(a, b, text, text1):
 def import_text(m_tags, p_pattern, r_tags):
     '''Import text file, "Text File: $0, '$1'"
 &Pattern (can be relative path), text, lyrics.txt'''
-    path = os.path
-    dirpath = r_tags.dirpath
     filename = tag_to_filename(p_pattern, m_tags, r_tags, False)
     if not filename:
         return
     try:
-        return open(filename, 'r').read().decode('utf8')
+        with open(filename, 'tr', encoding='utf-8') as textfile:
+            return textfile.read()
     except EnvironmentError:
+        return
+    except UnicodeDecodeError:
         return
 
 
@@ -743,14 +744,7 @@ Match &Case, check"""
 
     def replace_matches(value):
         try:
-            try:
-                return re.sub(regex, replace_tokens, value, 0, flags)
-            except TypeError:
-                # Python2.6 doesn't accept flags arg.
-                if matchcase:
-                    return re.sub('(?i)' + regex, replace_tokens, value, 0)
-                else:
-                    return re.sub(regex, replace_tokens, value, 0)
+            return re.sub(regex, replace_tokens, value, 0, flags)
         except re.error as e:
             raise findfunc.FuncError(str(e))
 

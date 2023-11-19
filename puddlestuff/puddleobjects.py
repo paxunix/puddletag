@@ -16,7 +16,7 @@ from functools import partial
 from glob import glob
 from io import StringIO
 from itertools import groupby  # for unique function.
-from typing import List, Union
+from typing import List, Optional, Union
 
 from PyQt5.QtCore import QBuffer, QByteArray, QCollator, QCollatorSortKey, QDir, QLocale, QRectF, QSettings, QSize, \
     QThread, QTimer, Qt, pyqtSignal
@@ -74,38 +74,9 @@ def keycmp(modifier):
         return 0
 
 
-try:
-    permutations = itertools.permutations
-except AttributeError:
-    # Using python < 2.6
-    def permutations(iterable, r=None):
-        # permutations('ABCD', 2) --> AB AC AD BA BC BD CA CB CD DA DB DC
-        # permutations(range(3)) --> 012 021 102 120 201 210
-        pool = tuple(iterable)
-        n = len(pool)
-        r = n if r is None else r
-        if r > n:
-            return
-        indices = list(range(n))
-        cycles = list(range(n, n - r, -1))
-        yield tuple(pool[i] for i in indices[:r])
-        while n:
-            for i in reversed(list(range(r))):
-                cycles[i] -= 1
-                if cycles[i] == 0:
-                    indices[i:] = indices[i + 1:] + indices[i:i + 1]
-                    cycles[i] = n - i
-                else:
-                    j = cycles[i]
-                    indices[i], indices[-j] = indices[-j], indices[i]
-                    yield tuple(pool[i] for i in indices[:r])
-                    break
-            else:
-                return
-
 modifiers = {}
 for i in range(1, len(mod_keys)):
-    for keys in set(permutations(mod_keys, i)):
+    for keys in set(itertools.permutations(mod_keys, i)):
         mod = keys[0]
         for key in keys[1:]:
             mod = mod | key
@@ -208,7 +179,7 @@ class PuddleConfig(object):
     def __init__(self, filename=None):
         if not filename:
             filename = os.path.join(CONFIGDIR, 'puddletag.conf')
-        self._setFilename(filename)
+        self.filename = filename
 
         self.setSection = self.set
         self.load = self.get
@@ -249,9 +220,12 @@ class PuddleConfig(object):
         self.data = defaultdict(lambda: {})
         if os.path.exists(self.filename):
             try:
-                self.data.update(json.loads(open(self.filename, 'r').read()))
-            except:
-                pass
+                with open(self.filename, 'r', encoding='utf-8') as config_file:
+                    self.data.update(json.load(config_file))
+            except json.JSONDecodeError as e:
+                print(f'Error parsing config file {self.filename}: {e}')
+            except Exception as e:
+                print(f'Unexpected error while reading config file {self.filename}: {e}')
 
     def save(self):
         actions = self.data.get('puddleactions')
@@ -266,19 +240,20 @@ class PuddleConfig(object):
         with open(filename, 'w') as fo:
             fo.write(json.dumps(dict(self.data), indent=2))
 
-    def _setFilename(self, filename):
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @filename.setter
+    def filename(self, filename):
         logging.debug(f'reading config file {filename}')
         self._filename = filename
         self.savedir = os.path.dirname(filename)
         self.reload()
 
-    def _getFilename(self):
-        return self._filename
-
     def sections(self):
         return list(self.data.keys())
-
-    filename = property(_getFilename, _setFilename)
 
 
 def _getSettings():
@@ -465,15 +440,18 @@ HORIZONTAL = 1
 VERTICAL = 0
 
 
-def get_icon(name, backup):
-    if not name and not backup:
+def get_icon(name: Optional[str] = None, fallback: Optional[str] = None) -> QIcon:
+    """Return the icon with the given name from the current icon theme.
+
+    If the theme does not contain such icon, fallback to built-in png of
+    the same name. The fallback file can be overriden by providing a filename
+    as the second argument.
+    """
+    if not name and not fallback:
         return QIcon()
-    elif not name and backup:
-        return QIcon(backup)
-    try:
-        return QIcon.fromTheme(name, QIcon(backup))
-    except AttributeError:
-        return QIcon(backup)
+
+    fallback = fallback or f'{name}.png'
+    return QIcon.fromTheme(name, QIcon(f':/{fallback}'))
 
 
 def get_languages(dirs=None):
@@ -867,10 +845,6 @@ def progress(func, pstring, maximum, threadfin=None):
 
         parent = args[0]
 
-        if maximum > 1:
-            win = ProgressWin(parent, maximum, pstring)
-            win.show()
-
         if len(args) > 1:
             f = func(*args)
         else:
@@ -884,6 +858,12 @@ def progress(func, pstring, maximum, threadfin=None):
             if threadfin:
                 threadfin()
             return
+        elif maximum > 1:
+            win = ProgressWin(parent, maximum, pstring)
+            win.show()
+        else:
+            return
+
         parent.showmessage = True
 
         def threadfunc():
@@ -1264,10 +1244,10 @@ class ListButtons(QVBoxLayout):
     def __init__(self, parent=None):
         QVBoxLayout.__init__(self, parent)
         self.addButton = QToolButton()
-        self.addButton.setIcon(get_icon('list-add', ':/filenew.png'))
+        self.addButton.setIcon(get_icon('list-add'))
         self.addButton.setToolTip(translate("List Buttons", 'Add'))
         self.removeButton = QToolButton()
-        self.removeButton.setIcon(get_icon('list-remove', ':/remove.png'))
+        self.removeButton.setIcon(get_icon('list-remove'))
         self.removeButton.setToolTip(translate("List Buttons", 'Remove'))
         self.removeButton.setShortcut('Delete')
         self.moveupButton = QToolButton()
@@ -1277,10 +1257,10 @@ class ListButtons(QVBoxLayout):
         self.movedownButton.setArrowType(Qt.ArrowType.DownArrow)
         self.movedownButton.setToolTip(translate("List Buttons", 'Move Down'))
         self.editButton = QToolButton()
-        self.editButton.setIcon(get_icon('document-edit', ':/edit.png'))
+        self.editButton.setIcon(get_icon('document-edit'))
         self.editButton.setToolTip(translate("List Buttons", 'Edit'))
         self.duplicateButton = QToolButton()
-        self.duplicateButton.setIcon(get_icon('edit-copy', ':/duplicate.png'))
+        self.duplicateButton.setIcon(get_icon('edit-copy'))
         self.duplicateButton.setToolTip(translate("List Buttons", 'Duplicate'))
         self.copyButton = QToolButton()
         self.copyButton.setToolTip(translate("List Buttons", 'Copy to clipboard'))
@@ -1364,7 +1344,12 @@ class MoveButtons(QWidget):
         self.next.clicked.connect(self.nextClicked)
         self.prev.clicked.connect(self.prevClicked)
 
-    def _setCurrentIndex(self, index):
+    @property
+    def index(self):
+        return self._currentindex
+
+    @index.setter
+    def index(self, index):
         try:
             if index >= len(self.arrayname) or index < 0:
                 return
@@ -1392,11 +1377,6 @@ class MoveButtons(QWidget):
             self.next.show()
 
         self.indexChanged.emit(index)
-
-    def _getCurrentIndex(self):
-        return self._currentindex
-
-    index = property(_getCurrentIndex, _setCurrentIndex)
 
     def nextClicked(self):
         self.index += 1
@@ -1688,8 +1668,8 @@ class PicWidget(QWidget):
             v.addWidget(self._image_size)
             v.addStretch()
 
-        h = QHBoxLayout();
-        h.addStretch();
+        h = QHBoxLayout()
+        h.addStretch()
         h.addLayout(v)
         if not buttons:
             h.addLayout(movebuttons)
@@ -1722,7 +1702,7 @@ class PicWidget(QWidget):
             self.removepic = listbuttons.removeButton
             self.editpic = listbuttons.editButton
             self.savepic = QToolButton()
-            self.savepic.setIcon(QIcon(':/save.png'))
+            self.savepic.setIcon(get_icon('document-save'))
             self.savepic.setIconSize(QSize(16, 16))
             self.copypic = listbuttons.copyButton
             self.pastepic = listbuttons.pasteButton
@@ -1779,18 +1759,18 @@ class PicWidget(QWidget):
 
         self._lastdata = None
 
-    def _setContext(self, text):
+    @property
+    def context(self):
+        return self._contextlabel.text()
+
+    @context.setter
+    def context(self, text):
         if not text:
             self._contextlabel.setVisible(False)
             self._contextlabel.setText('')
         else:
             self._contextlabel.setText(translate("Artwork Context", text))
             self._contextlabel.setVisible(True)
-
-    def _getContext(self):
-        return self._contextlabel.text()
-
-    context = property(_getContext, _setContext)
 
     def setDescription(self, text):
         '''Sets the description of the current image to the text in the
@@ -1903,10 +1883,14 @@ class PicWidget(QWidget):
             self.next.show()
             self.prev.show()
 
-    def _getCurrentImage(self):
+    @property
+    def currentImage(self):
+        """Get or set the index of the current image. If the index isn't valid
+           then a blank image is loaded."""
         return self._currentImage
 
-    def _setCurrentImage(self, num):
+    @currentImage.setter
+    def currentImage(self, num):
         while True:
             # A lot of files have corrupt picture data. I just want to
             # skip those and not have the user be any wiser.
@@ -1973,10 +1957,6 @@ class PicWidget(QWidget):
         self.label.setFrameStyle(QFrame.Shape.NoFrame)
         self.enableButtons()
         # self.resizeEvent()
-
-    currentImage = property(_getCurrentImage, _setCurrentImage, """Get or set the index of
-    the current image. If the index isn't valid
-    then a blank image is loaded.""")
 
     def maxImage(self):
         """Shows a window with the picture fullsized."""
@@ -2252,10 +2232,9 @@ class ProgressWin(QDialog):
             self._timer.stop()
         super(ProgressWin, self).closeEvent(event)
 
-    def _value(self):
+    @property
+    def value(self):
         return self.pbar.value()
-
-    value = property(_value)
 
 
 class PuddleCombo(QWidget):
@@ -2269,7 +2248,7 @@ class PuddleCombo(QWidget):
         self.combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
 
         self.remove = QToolButton()
-        self.remove.setIcon(get_icon('list-remove', ':/remove.png'))
+        self.remove.setIcon(get_icon('list-remove'))
         self.remove.setToolTip(translate("Combo Box", 'Remove current item.'))
         self.remove.setIconSize(QSize(13, 13))
         self.remove.clicked.connect(self.removeCurrent)
@@ -2485,14 +2464,14 @@ class ShortcutEditor(QLineEdit):
         self.setText(text)
         self.valid = valid
 
-    def _getValid(self):
+    @property
+    def valid(self):
         return self._valid
 
-    def _setValid(self, value):
+    @valid.setter
+    def valid(self, value):
         self._valid = value
         self.validityChanged.emit(value)
-
-    valid = property(_getValid, _setValid)
 
 
 if __name__ == '__main__':
