@@ -63,12 +63,12 @@ class Spotify(object):
         self.spotify = spotipy.Spotify(auth_manager = self.spotifyAuthManager)
 
 
-    def _spotifySearch(self, query, queryType):
+    def _spotifySearch(self, queryData):
         write_log(translate('Spotify',
-            u"Spotify request: query='{}' queryType='{}'".format(query,
-                queryType)))
+            u"Spotify request: query='{}' queryType='{}'".format(queryData["query"], queryData["queryType"])))
 
-        response = self.spotify.search(q = query, type = queryType, limit = 50)
+        response = self.spotify.search(q = queryData["query"],
+            type = queryData["queryType"], limit = 50)
 
         return response
 
@@ -179,36 +179,61 @@ class Spotify(object):
 
 
     @staticmethod
-    def _buildQuery(artist, album):
-        query = ""
-        if album and (not artist):
-            query = 'album:"' + album + '"'
-        elif artist and (not album):
-            query = 'artist:"' + artist + '"'
-        elif artist and album:
-            query = 'album:"' + album + '" artist:"' + artist + '"'
+    def _buildQuery(artist, album=None, track=None):
+        queries = []
+        queryTypes = []
 
-        return query
+        if artist:
+            queries.append('artist:"' + artist + '"')
+            queryTypes.append('artist')
+
+        if album:
+            queries.append('album:"' + album + '"')
+            queryTypes.append('album')
+
+        if track:
+            queries.append('track:"' + track + '"')
+            queryTypes.append('track')
+
+        return { "query": " ".join(queries),
+                "queryType": ",".join(queryTypes) }
+
+
+    @staticmethod
+    def _getTrackTitleFromModelTag(modeltag):
+        # XXX: not sure [0] is always right
+        title = modeltag[0].get("title")[0]
+
+        # Remove parentheticals and things that are not likely to contribute
+        # to search hits.
+        title = re.sub(r'\(.*?\)', "", title)
+        title = re.sub(r'\[.*?\]', "", title)
+        title = re.sub(r'\b(feat|ft|featuring)\b\.?.*', "", title, flags = re.IGNORECASE)
+        title = re.sub(r'^\s+', "", title)
+        title = re.sub(r'\s+$', "", title)
+
+        return title
 
 
     def keyword_search(self, text):
         """Searches for albums/artists/tracks by keyword text."""
 
-        queryType = "album,artist,track"
         results = []
         searchPairs = []
         try:
             searchPairs = parse_searchstring(text)
             for pair in searchPairs:
-                query = Spotify._buildQuery(pair[0], pair[1])
+                queryData = Spotify._buildQuery(pair[0], pair[1])
 
-                if query:
-                    response = self._spotifySearch(query, queryType)
+                if queryData:
+                    response = self._spotifySearch(queryData)
                     results.extend(Spotify._parseSpotifySearchResponse(response,
                         keepTracks = False))
 
         except:
-            response = self._spotifySearch(text, queryType)
+            # Bad input format means just do a text search with the input
+            response = self._spotifySearch({
+                "query": text, "queryType": "album,artist,track" })
             results.extend(Spotify._parseSpotifySearchResponse(response,
                 keepTracks = False))
 
@@ -221,11 +246,13 @@ class Spotify(object):
         for artist in artists.keys():
             # All query types should return album data because that's the
             # only thing that's meaningful (it has track data)
-            queryType = "album"
-            query = Spotify._buildQuery(artist, album)
 
-            if query:
-                response = self._spotifySearch(query, queryType)
+            # Always include track title if we have it
+            queryData = Spotify._buildQuery(artist, album,
+                Spotify._getTrackTitleFromModelTag(artists[artist]))
+
+            if queryData:
+                response = self._spotifySearch(queryData)
                 results.extend(Spotify._parseSpotifySearchResponse(response,
                     keepTracks = True))
 
@@ -233,9 +260,9 @@ class Spotify(object):
             # the album name is wrong, so try a search by artist only (if it
             # has a value)
             if len(results) == 0 and artist:
-                query = "artist:" + artist
+                queryData = Spotify._buildQuery(artist, None)
 
-                response = self._spotifySearch(query, queryType)
+                response = self._spotifySearch(queryData)
                 results.extend(Spotify._parseSpotifySearchResponse(response,
                     keepTracks = True))
 
@@ -251,17 +278,16 @@ class Spotify(object):
                         title = title[0]
 
                     if title:
-                        query = "track:" + title
-                        queryType = "track"
+                        queryData = Spotify._buildQuery(artist, None, title)
 
-                        response = self._spotifySearch(query, queryType)
+                        response = self._spotifySearch(queryData)
                         results.extend(Spotify._parseSpotifySearchResponse(response, keepTracks = False))
 
                     # If we still have no results, try a dumb keyword search
                     # with the filename split on punctuation.  Maybe we get
                     # lucky.
                     if not results:
-                        keywords = " ".join(re.split(r'\W+', os.path.splitext(artists[artist][0].get("__filename"))[0]));
+                        keywords = " ".join(re.split(r'\W+', os.path.splitext(artists[artist][0].get("__filename"))[0]))
                         results.extend(self.keyword_search(keywords))
 
         return results
