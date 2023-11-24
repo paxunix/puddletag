@@ -122,10 +122,15 @@ class Spotify(object):
 
     @staticmethod
     def _parseAlbum(raw):
+        year = "unknown"
+        matched = re.search(r'^\d\d\d\d', raw["release_date"])
+        if matched:
+            year = matched.group(0)
+
         album = {
             "artist": raw["artists"][0]["name"],
             "album": raw["name"],
-            "year": re.split(r'\D', raw["release_date"])[0],
+            "year": year,
             "#spotifyalbumuri": raw["uri"],
         }
 
