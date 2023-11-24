@@ -153,7 +153,7 @@ class Spotify(object):
 
 
     @staticmethod
-    def _parseSpotifySearchResponse(response, keepTracks):
+    def _parseSpotifySearchResponse(response):
         albumKey2Tracks = VivifyDict()
 
         if "albums" in response:
@@ -162,11 +162,13 @@ class Spotify(object):
                 albumKey2Tracks[albumKey].setdefault("albuminfo", album)
                 albumKey2Tracks[albumKey].setdefault("trackinfo", [])
 
-        # We ignore any artist matches, since there is no album/track info
-        # in those objects.
+        # We ignore any response["artists"] matches, since there is no
+        # album/track info in those objects.
 
         # Have to loop over tracks even if we're not keeping track data in
         # case there are albums in there that we haven't seen yet.
+        # Don't save individual track info, though, since the retrieve()
+        # method will do that once the user clicks into a specific album.
         if "tracks" in response:
             for track in Spotify._parseTracks(response["tracks"]["items"]):
                 if "albuminfo" in track:
@@ -174,11 +176,6 @@ class Spotify(object):
 
                     albumKey2Tracks[albumKey].setdefault("albuminfo", track["albuminfo"])
                     albumKey2Tracks[albumKey].setdefault("trackinfo", [])
-
-                if keepTracks:
-                    del track["albuminfo"]      # no longer needed
-                    albumKey2Tracks[albumKey]["trackinfo"].append(track)
-
 
         return map(lambda key: (albumKey2Tracks[key]["albuminfo"], albumKey2Tracks[key]["trackinfo"]), albumKey2Tracks.keys())
 
@@ -232,15 +229,13 @@ class Spotify(object):
 
                 if queryData:
                     response = self._spotifySearch(queryData)
-                    results.extend(Spotify._parseSpotifySearchResponse(response,
-                        keepTracks = False))
+                    results.extend(Spotify._parseSpotifySearchResponse(response))
 
         except:
             # Bad input format means just do a text search with the input
             response = self._spotifySearch({
                 "query": text, "queryType": "album,artist,track" })
-            results.extend(Spotify._parseSpotifySearchResponse(response,
-                keepTracks = False))
+            results.extend(Spotify._parseSpotifySearchResponse(response))
 
         return results
 
@@ -258,8 +253,7 @@ class Spotify(object):
 
             if queryData:
                 response = self._spotifySearch(queryData)
-                results.extend(Spotify._parseSpotifySearchResponse(response,
-                    keepTracks = True))
+                results.extend(Spotify._parseSpotifySearchResponse(response))
 
             # If we had artist and album but found no results, it's possible
             # the album name is wrong, so try a search by artist only (if it
@@ -268,8 +262,7 @@ class Spotify(object):
                 queryData = Spotify._buildQuery(artist, None)
 
                 response = self._spotifySearch(queryData)
-                results.extend(Spotify._parseSpotifySearchResponse(response,
-                    keepTracks = True))
+                results.extend(Spotify._parseSpotifySearchResponse(response))
 
             # If still no results and we have track info, search for it.
             # However, we don't get back complete track listings for the
@@ -286,7 +279,7 @@ class Spotify(object):
                         queryData = Spotify._buildQuery(artist, None, title)
 
                         response = self._spotifySearch(queryData)
-                        results.extend(Spotify._parseSpotifySearchResponse(response, keepTracks = False))
+                        results.extend(Spotify._parseSpotifySearchResponse(response))
 
                     # If we still have no results, try a dumb keyword search
                     # with the filename split on punctuation.  Maybe we get
