@@ -139,7 +139,6 @@ def load_language(qapp, langfile=None):
                     f = langs[locale]
                     langargs = os.path.basename(f), os.path.dirname(f)
                     break
-
         if not langargs and lang == 'default':
             langargs = 'default'
 
