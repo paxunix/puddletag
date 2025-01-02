@@ -1,13 +1,14 @@
 .DEFAULT_GOAL = install
 
-venv/pyvenv.cfg:
-	python3 -m venv ./venv
+clean:
+	rm -fr .venv install
 
-venv/bin/pip-compile: venv/pyvenv.cfg
-	./venv/bin/pip3 install pip-tools
+.venv:
+	uv venv
 
-requirements.txt: requirements.in venv/bin/pip-compile
-	./venv/bin/pip-compile -v requirements.in
+upgrade: .venv
+	uv pip install --upgrade
 
-install: requirements.txt
-	./venv/bin/pip3 install -r requirements.txt
+install: .venv requirements.txt
+	uv pip install --requirements ./requirements.txt
+	touch install
