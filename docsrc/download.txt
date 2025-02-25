@@ -43,10 +43,10 @@ Install the dependencies as listed above. For Debian-based distros, you can run 
 + puddletag should appear in your Multimedia (or Sounds etc.) menu. If not run ``desktop-file-install puddletag.desktop`` as root in the unzipped directory.
 
 .. note:: For AcoustID support in Ubuntu you will also need to **fpcalc** binary
-    For Ubuntu 12.04 and later it is available in the libchromaprint-tools 
+    For Ubuntu 12.04 and later it is available in the libchromaprint-tools
     package.
 
-    For earlier versions and other distros please visit the 
+    For earlier versions and other distros please visit the
     `AcoustID <http://acoustid.org/chromaprint>`_ page for installation
     instructions.
 
