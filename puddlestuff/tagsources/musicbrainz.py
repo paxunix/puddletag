@@ -45,6 +45,10 @@ ALBUM_KEYS.update({
     'title': 'album',
     'track-count': '__numtracks',
 })
+MEDIUM_KEYS = ALBUM_KEYS.copy()
+MEDIUM_KEYS.update({
+    'id': 'mbrainz_medium_id',
+})
 
 TRACK_KEYS = {
     'id': 'mbrainz_track_id',
