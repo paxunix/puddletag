@@ -68,7 +68,7 @@ class Spotify(object):
             u"Spotify request: query='{}' queryType='{}'".format(queryData["query"], queryData["queryType"])))
 
         response = self.spotify.search(q = queryData["query"],
-            type = queryData["queryType"], limit = 50)
+            type = queryData["queryType"], limit = 10)
 
         return response
 
