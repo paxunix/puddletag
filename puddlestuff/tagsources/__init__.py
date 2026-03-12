@@ -235,7 +235,7 @@ class MetaProcessor(HTMLParser):
 
 tagsources = []
 for source in ('acoust_id', 'amazon', 'amg', 'discogs', 'freedb',
-               'musicbrainz', 'spotify'):
+               'musicbrainz', 'musicbrainz_song'):
     try:
         tagsources.append(getattr(
             import_module('puddlestuff.tagsources.' + source),

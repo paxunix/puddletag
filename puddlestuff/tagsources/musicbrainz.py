@@ -57,6 +57,7 @@ TRACK_KEYS = {
     'position': 'track',
     'length': '__length',
     'rating': 'mbrainz_rating',
+    'first-release-date': 'year',
 }
 
 TO_REMOVE = ('recording', 'offset', 'count')
@@ -330,6 +331,13 @@ def parse_track_list(node):
 
         if 'length' in track:
             track['length'] = strlength(int(track['length']) / 1000)
+
+        if 'first-release-date' in track:
+            matched = re.search(r'^\d{4}', track['first-release-date'])
+            if matched:
+                track['first-release-date'] = matched.group(0)
+            else:
+                del track['first-release-date']
 
         tracks.append(convert_dict(track, TRACK_KEYS))
     return tracks
