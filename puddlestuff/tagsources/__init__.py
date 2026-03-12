@@ -138,7 +138,8 @@ def write_log(text):
 
 
 tagsources = []
-for source in ('acoust_id', 'discogs', 'freedb', 'musicbrainz', 'spotify'):
+for source in ('acoust_id', 'discogs', 'freedb', 'musicbrainz', 'spotify',
+               'musicbrainz_song'):
     try:
         tagsources.append(getattr(
             import_module('puddlestuff.tagsources.' + source),
