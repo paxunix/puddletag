@@ -68,8 +68,7 @@ def rename(oldpath, newpath):
     if oldpath == newpath:
         return False
     if os.path.exists(newpath):
-        raise RenameError(IOError(EEXIST, os.strerror(EEXIST),
-                                  newpath), oldpath, newpath)
+        os.remove(newpath)
 
     if not os.path.exists(os.path.dirname(newpath)):
         try:
