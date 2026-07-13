@@ -12,3 +12,6 @@ upgrade: .venv
 install: .venv requirements.txt
 	uv pip install --requirements ./requirements.txt
 	touch install
+
+run:
+	uv run --no-project --with-requirements requirements.in ./puddletag
