@@ -20,10 +20,10 @@ NORMALFLAG = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
 RETRIEVED_ALBUMS = translate("Tag Sources", "Retrieved Albums (sorted by {})")
 
-default_albumpattern = '%artist% - %album% $if(%__numtracks%, ' \
+default_albumpattern = '%artist% - %__album_display% $if(%__numtracks%, ' \
                        '[%__numtracks%], "")'
 
-no_disp_fields = ['__numtracks', '__image']
+no_disp_fields = ['__numtracks', '__image', '__album_display']
 
 pyqtRemoveInputHook()
 
@@ -34,6 +34,7 @@ def inline_display(pattern, tags):
 
 def fillItem(item, info, tracks, trackpattern):
     item.itemData = info
+    set_album_display(item.itemData)
     if tracks is not None:
         item.itemData['__numtracks'] = str(len(tracks))
         [item.appendChild(ChildItem(track, trackpattern, item))
@@ -43,6 +44,12 @@ def fillItem(item, info, tracks, trackpattern):
         item.itemData['__numtracks'] = '0'
         item.hasTracks = False
     item.dispPattern = item.dispPattern
+
+
+def set_album_display(info):
+    album = to_string(info.get('album', ''))
+    year = to_string(info.get('year', ''))
+    info['__album_display'] = '{} ({})'.format(album, year) if year else album
 
 
 def get_tagsources():
@@ -517,6 +524,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         exact_matches = []
         self.rootItem.childItems = []
         for info, tracks in data:
+            set_album_display(info)
             parent = TreeItem(info, self.albumPattern, self.rootItem)
             fillItem(parent, info, tracks, self.trackPattern)
             exact_matches.extend(parent.exact_matches())
