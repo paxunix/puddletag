@@ -26,6 +26,12 @@ pyqtRemoveInputHook()
 
 TAGSOURCE_CONFIG = os.path.join(CONFIGDIR, 'tagsources.conf')
 MTAG_SOURCE_DIR = os.path.join(CONFIGDIR, 'mp3tag_sources')
+OLD_DEFAULT_ALBUMPATTERNS = {
+    '%artist% - %album% $if(%__numtracks%, [%__numtracks%], "")',
+    '%artist% - %album%$if(%__numtracks%, [%__numtracks%], "")',
+    '%artist% - %album%$if(%year%, (%year%), "")$if(%__numtracks%, [%__numtracks%], "")',
+    '%artist% - %album%$if(%year%, (%year%),)$if(%__numtracks%, [%__numtracks%],)',
+}
 
 DEFAULT_SEARCH_TIP = translate("Tag Sources",
                                "Enter search parameters here. If empty, the selected "
@@ -47,6 +53,12 @@ FIELDLIST_TIP = translate("Tag Sources",
                           'composer and __image fields.')
 
 DEFAULT_REGEXP = {'album': [r'(.*?)([\(\[\{].*[\)\]\}])', '$1']}
+
+
+def current_album_pattern(pattern):
+    if pattern in OLD_DEFAULT_ALBUMPATTERNS:
+        return default_albumpattern
+    return pattern
 
 
 def apply_regexps(audio, regexps=None):
@@ -489,7 +501,10 @@ class SettingsDialog(QWidget):
         if 0 <= lastsort < len(sortoptions):
             self._sortoptions.setCurrentIndex(lastsort)
 
-        albumformat = cparser.get('tagsources', 'albumpattern', default_albumpattern)
+        albumformat = cparser.get('tagsources', 'albumpattern',
+                                  default_albumpattern)
+        albumformat = current_album_pattern(albumformat)
+        cparser.set('tagsources', 'albumpattern', albumformat)
         self._albumdisp.setText(albumformat)
 
         self._ua.setText(cparser.get('tagsources',
@@ -823,7 +838,9 @@ class MainWin(QWidget):
         df = get('trackpattern', '%track% - %title%')
         self.listbox.trackPattern = df
 
-        albumformat = get('albumpattern', default_albumpattern)
+        albumformat = current_album_pattern(get('albumpattern',
+                                                default_albumpattern))
+        settings.set('tagsources', 'albumpattern', albumformat)
         self.listbox.albumPattern = albumformat
 
         sort_options = get('sortoptions',
