@@ -88,6 +88,16 @@ def test_shown_values(loaded):
                             'title': '<keep>', 'track': '', 'year': ''}
 
 
+def test_scalar_tag_values_are_shown_without_joining(loaded):
+    panel, paths = loaded
+    for audio in panel._status['selectedfiles']:
+        audio['year'] = 2026
+
+    panel.fillCombos()
+
+    assert '2026' in listed(panel.combos['year'])
+
+
 # Save: "Save's whatever's currently entered in the Tag Panel to the
 # selected files" (menus.txt), from File->Save, its toolbar button
 # ("click Save", tut1.txt) or Ctrl+S.

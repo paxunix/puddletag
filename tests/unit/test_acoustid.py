@@ -7,6 +7,7 @@ recorded MusicBrainz release. fpcalc is a stub, but for the two real_fpcalc
 tests.
 """
 import json
+import importlib.util
 import os
 import re
 import socket
@@ -110,6 +111,17 @@ def sources_listed(path):
     return done.stdout.splitlines()
 
 
+def expected_sources(with_acoustid):
+    sources = ['Discogs.com', 'Discogs Song', 'FreeDB', 'MusicBrainz',
+               'MusicBrainz Song']
+    if importlib.util.find_spec('spotipy'):
+        sources.append('Spotify')
+    sources.append('YouTube')
+    if with_acoustid:
+        sources.insert(0, 'AcoustID')
+    return sources
+
+
 @pytest.fixture
 def source(acoust_id, acoustid_service):
     """AcoustID as the Tag Sources window builds it, on the local server,
@@ -167,17 +179,14 @@ def closed_server():
 # Loading, preferences and parsers --------------------------------------------
 
 def test_listed_with_fpcalc_installed(fpcalc):
-    # "tag sources supporting lookups from Discogs, FreeDB, MusicBrainz and
-    # AcoustID"; "you need to have chromaprint (specifically the fpcalc
-    # binary) installed".
-    assert sources_listed(fpcalc.directory) == ['AcoustID', 'Discogs.com', 'FreeDB', 'MusicBrainz']
+    # AcoustID is omitted when chromaprint (specifically the fpcalc binary)
+    # is unavailable. The remaining bundled sources are always listed.
+    assert sources_listed(fpcalc.directory) == expected_sources(True)
 
 
 def test_absent_without_fpcalc(tmp_path):
-    # "tag sources supporting lookups from Discogs, FreeDB, MusicBrainz and
-    # AcoustID"; "you need to have chromaprint (specifically the fpcalc
-    # binary) installed". PATH holds an empty folder, so there's no fpcalc.
-    assert sources_listed(tmp_path) == ['Discogs.com', 'FreeDB', 'MusicBrainz']
+    # PATH holds an empty folder, so there is no fpcalc and AcoustID is absent.
+    assert sources_listed(tmp_path) == expected_sources(False)
 
 
 def test_preferences_offer_the_minimum_score_and_the_key(acoust_id):

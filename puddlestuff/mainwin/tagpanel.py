@@ -165,8 +165,12 @@ class FrameCombo(QGroupBox):
                     value = audio[field]
                     if isinstance(value, str):
                         tags[field].add(value)
+                    elif value is None:
+                        tags[field].add('')
+                    elif not isinstance(value, (list, tuple)):
+                        tags[field].add(str(value))
                     else:
-                        tags[field].add(SEPARATOR.join(value))
+                        tags[field].add(SEPARATOR.join(map(str, value)))
                 else:
                     tags[field].add('')
 
